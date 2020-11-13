@@ -1,5 +1,5 @@
 """Handler class for our Daemon"""
-from watchdog.events import FileSystemEventHandler
+from watchdog.events import FileSystemEventHandler, FileDeletedEvent, DirDeletedEvent
 import requests
 
 from datetime import datetime, timedelta
@@ -19,7 +19,7 @@ class FileHandler(FileSystemEventHandler):
             return
         else:
             self.last_modified = datetime.now()
-        print(f"Hey, {event.src_path} has been modified")
+        print(f"modifing {event.src_path}")
     
     def on_created(self, event):
         # Always check for last modified
@@ -27,7 +27,7 @@ class FileHandler(FileSystemEventHandler):
             return
         else:
             self.last_modified = datetime.now()
-
+        
         # Extract our path
         fullPath = os.path.relpath(event.src_path, DIRECTORY) # i.e. sid/somefolder/test.txt
         basePath = os.path.dirname(fullPath) # i.e. sid/somefolder
@@ -59,8 +59,36 @@ class FileHandler(FileSystemEventHandler):
             return
         else:
             self.last_modified = datetime.now()
-        print(f"what the f**k! Someone deleted {event.src_path}!")
-    
+        
+        if (type(event) == FileDeletedEvent):
+            # Extract our path
+            fullPath = os.path.relpath(event.src_path, DIRECTORY) # i.e. sid/somefolder/test.txt
+            
+            # Make our call to delete
+            responseDelete = requests.post(urljoin(SERVER_URL, "deleteFile"), data={'path': fullPath})
+
+            if responseDelete.status_code == 400:
+                print("The file already does not exist on the server!")
+            elif (responseDelete.status_code == 500):
+                print("Error deleting the file")
+            else:
+                print(f"Deleted file {fullPath}")
+        elif (type(event) == DirDeletedEvent):
+            # Extract our path
+            fullPath = os.path.relpath(event.src_path, DIRECTORY) # i.e. sid/
+
+            # Make our call to delete
+            responseDelete = requests.post(urljoin(SERVER_URL, "deleteFolder"), data={'path': fullPath})
+
+            if responseDelete.status_code == 400:
+                print("The file already does not exist on the server!")
+            elif (responseDelete.status_code == 500):
+                print("Error deleting the file")
+            else:
+                print(f"Deleted file {fullPath}")
+
+
+
     def on_moved(self, event):
         # Always check for last modified
         if checkLastModified(self.last_modified):
@@ -77,5 +105,4 @@ def uploadFile(files, path):
     """Helper function to upload a file"""
     responseUpload = requests.post(urljoin(SERVER_URL, "uploadFile"), files=files, data={'path': path})
     if (responseUpload.status_code not in [200, 201]):
-        import pdb; pdb.set_trace()
         print(f"Error uploading {path}: {responseUpload.text}")
