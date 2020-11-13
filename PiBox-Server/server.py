@@ -15,7 +15,6 @@ def uploadFile():
     """
     Upload endpoint to upload new files
     Returns: 
-        * 201: If file already exists
         * 200: If upload was succssful 
         * 500: If there is a server error
     """
@@ -27,10 +26,8 @@ def uploadFile():
         finalPath = os.path.join(relativePath, toUpload.filename)
 
         if (os.path.isfile(finalPath)):
-            # The file exists already
-            # TODO: Compare the timestamp, overwrite if newer
-            data = {'error': 'File already exists!'}
-            return Response(response=json.dumps(data), status=201)
+            # The file exists already, delete it so we can reupload
+            os.remove(finalPath)
 
         # Check the directory exists 
         if (not os.path.isdir(relativePath)):
