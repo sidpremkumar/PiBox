@@ -41,6 +41,8 @@ def getFiles(directory):
         if os.path.isdir(completePath):
             completeFileList = completeFileList + getFiles(completePath)
         else:
+            # Return only the realtive path to the file
+            completePath = os.path.relpath(completePath, DIRECTORY)
             completeFileList.append(completePath)
     return completeFileList
 
