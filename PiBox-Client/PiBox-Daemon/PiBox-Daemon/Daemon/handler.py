@@ -22,10 +22,15 @@ class FileHandler(FileSystemEventHandler):
 
         if (type(event) == DirCreatedEvent):
             # A Directory has been created
-            import pdb; pdb.set_trace()
+            # Make a call to our server to create the folder 
+            responseFolderCreated = requests.post(urljoin(SERVER_URL, "createFolder"), data={'path': fullPath})
+
+            if (responseFolderCreated.status_code != 200):
+                print("Error creating folder")
+                return
+            
         elif (type(event) == FileCreatedEvent):
             # A File has been created
-
             # Make a call to our server to check if the file exists/last modified time
             responseFileLastModified = requests.get(urljoin(SERVER_URL, "retriveFileLastModified"), data={'path': fullPath})
 
@@ -79,6 +84,7 @@ class FileHandler(FileSystemEventHandler):
 
 
     def on_moved(self, event):
+        # Make a call to our server to 
         print(f"Moved {event.src_path} to {event.dest_path}")
 
 def uploadFile(files, path):
