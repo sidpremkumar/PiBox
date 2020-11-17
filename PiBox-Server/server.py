@@ -10,9 +10,43 @@ app = Flask(__name__)
 # Directory where files will be stored 
 DIRECTORY="/Users/sidpremkumar/PiBox-Data"
 
+@app.route('/getSyncManifest', methods=["get"])
+def getSyncManifest():
+    """
+    Returns a JSON of all files in the server along with last modified timestamps
+    Returns:
+        * 200: If succsesful
+        * 500: If there is a server error
+    """
+    try:
+        # First grab the path we're looking at
+        path = request.values['path'].strip("/")
+        files = getFiles(os.path.join(DIRECTORY, path))
+        data = {'files': files}
+        return Response(status=200, response=json.dumps(data))
+    except Exception as e: 
+        # Something went wrong, return 500 along with the error
+        data = {'error': str(e)}
+        return Response(response=json.dumps(data), status=500)
+
+def getFiles(directory):
+    """
+    Helper function to get all files in a directory
+    param string directory: Directory we're looking at
+    """
+    listOfFile = os.listdir(directory)
+    completeFileList = list()
+    for singleFile in listOfFile:
+        completePath = os.path.join(directory, singleFile)
+        if os.path.isdir(completePath):
+            completeFileList = completeFileList + getFiles(completePath)
+        else:
+            completeFileList.append(completePath)
+    return completeFileList
+
 
 @app.route('/moveFile', methods=["post"])
-def createFolder():
+def moveFile():
     """
     Moves a file or folder
     Returns:

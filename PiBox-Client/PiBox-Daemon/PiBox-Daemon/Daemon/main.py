@@ -7,9 +7,13 @@ from watchdog.events import LoggingEventHandler
 
 from handler import FileHandler
 from config import DIRECTORY
+from sync import syncDirectory
 
 def main(): 
     """Main Entrypoint into the Daemon"""
+    # First run a sync between the server and the client
+    syncDirectory(DIRECTORY)
+    
     # Create our observer
     observer = Observer()
 
