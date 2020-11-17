@@ -1,5 +1,5 @@
 """Handler class for our Daemon"""
-from watchdog.events import FileSystemEventHandler, FileDeletedEvent, DirDeletedEvent
+from watchdog.events import FileSystemEventHandler, FileDeletedEvent, DirDeletedEvent, FileCreatedEvent, DirCreatedEvent
 import requests
 
 from datetime import datetime, timedelta
@@ -10,56 +10,45 @@ from config import DIRECTORY, SERVER_URL
 
 class FileHandler(FileSystemEventHandler):
     def __init__(self):
-        # To prevent events being called twice
-        self.last_modified = datetime.now()
+        pass
 
     def on_modified(self, event):
-        # Always check for last modified
-        if checkLastModified(self.last_modified):
-            return
-        else:
-            self.last_modified = datetime.now()
         print(f"modifing {event.src_path}")
     
     def on_created(self, event):
-        # Always check for last modified
-        if checkLastModified(self.last_modified):
-            return
-        else:
-            self.last_modified = datetime.now()
-        
         # Extract our path
         fullPath = os.path.relpath(event.src_path, DIRECTORY) # i.e. sid/somefolder/test.txt
         basePath = os.path.dirname(fullPath) # i.e. sid/somefolder
 
-        # Make a call to our server to check if the file exists/last modified time
-        responseFileLastModified = requests.get(urljoin(SERVER_URL, "retriveFileLastModified"), data={'path': fullPath})
+        if (type(event) == DirCreatedEvent):
+            # A Directory has been created
+            import pdb; pdb.set_trace()
+        elif (type(event) == FileCreatedEvent):
+            # A File has been created
 
-        if (responseFileLastModified.status_code == 400):
-            # The file does not exist. Grab the base path
-            files = {'file': open(event.src_path, 'rb')}
+            # Make a call to our server to check if the file exists/last modified time
+            responseFileLastModified = requests.get(urljoin(SERVER_URL, "retriveFileLastModified"), data={'path': fullPath})
 
-            # Upload the file
-            uploadFile(files, basePath)
-        elif (responseFileLastModified.status_code == 200):
-            # We have the file uploaded, compare the timestamps to see if we need to reupload
-            timestamp = responseFileLastModified.json()['timestamp']
-            if (timestamp < os.path.getmtime(event.src_path)):
-                # We need to reupload. Grab the base path
+            if (responseFileLastModified.status_code == 400):
+                # The file does not exist. Grab the base path
                 files = {'file': open(event.src_path, 'rb')}
 
                 # Upload the file
                 uploadFile(files, basePath)
+            elif (responseFileLastModified.status_code == 200):
+                # We have the file uploaded, compare the timestamps to see if we need to reupload
+                timestamp = responseFileLastModified.json()['timestamp']
+                if (timestamp < os.path.getmtime(event.src_path)):
+                    # We need to reupload. Grab the base path
+                    files = {'file': open(event.src_path, 'rb')}
+
+                    # Upload the file
+                    uploadFile(files, basePath)
 
         print(f"Uploaded/Updated {fullPath}")
 
     def on_deleted(self, event):
-        # Always check for last modified
-        if checkLastModified(self.last_modified):
-            return
-        else:
-            self.last_modified = datetime.now()
-        
+        # Determine if its a File delete or Dir delete
         if (type(event) == FileDeletedEvent):
             # Extract our path
             fullPath = os.path.relpath(event.src_path, DIRECTORY) # i.e. sid/somefolder/test.txt
@@ -90,16 +79,7 @@ class FileHandler(FileSystemEventHandler):
 
 
     def on_moved(self, event):
-        # Always check for last modified
-        if checkLastModified(self.last_modified):
-            return
-        else:
-            self.last_modified = datetime.now()
-        print(f"ok ok ok, someone moved {event.src_path} to {event.dest_path}")
-
-
-def checkLastModified(last_modified, time_difference=1):
-    return datetime.now() - last_modified < timedelta(seconds=time_difference)
+        print(f"Moved {event.src_path} to {event.dest_path}")
 
 def uploadFile(files, path):
     """Helper function to upload a file"""

@@ -2,4 +2,4 @@
 DIRECTORY="/Users/sidpremkumar/PiBox-Data"
 
 # URL to our server 
-SERVER_URL="http://10.0.0.39:5000/"
+SERVER_URL="http://10.0.0.180:5000/"
