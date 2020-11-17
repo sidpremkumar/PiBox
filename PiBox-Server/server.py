@@ -42,7 +42,7 @@ def getFiles(directory):
             completeFileList = completeFileList + getFiles(completePath)
         else:
             # Return only the realtive path to the file
-            completePath = os.path.relpath(completePath, DIRECTORY)
+            completePath = os.path.relpath(completePath, DIRECTORY) # i.e. ubuntu/test/test.txt -> test/test.txt
             completeFileList.append(completePath)
     return completeFileList
 

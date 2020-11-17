@@ -6,15 +6,23 @@ from datetime import datetime, timedelta
 from urllib.parse import urljoin
 import os
 
-from config import DIRECTORY, SERVER_URL
+from config import DIRECTORY, SERVER_URL, TO_IGNORE
+from sync import syncDirectory
 
 class FileHandler(FileSystemEventHandler):
     def __init__(self):
         pass
 
     def on_modified(self, event):
-        import pdb; pdb.set_trace()
-        print(f"modifing {event.src_path}")
+        
+        # Check if the event is in TO_IGNORE
+        for extension in TO_IGNORE:
+            if (extension in event.src_path):
+                return
+        
+        # Sync the folder we a modifying
+        event.src_path.split(DIRECTORY)
+        syncDirectory(''.join(event.src_path.split(DIRECTORY)))
     
     def on_created(self, event):
         # Extract our path
@@ -98,5 +106,6 @@ class FileHandler(FileSystemEventHandler):
 def uploadFile(files, path):
     """Helper function to upload a file"""
     responseUpload = requests.post(urljoin(SERVER_URL, "uploadFile"), files=files, data={'path': path})
+    import pdb; pdb.set_trace()
     if (responseUpload.status_code not in [200, 201]):
         print(f"Error uploading {path}: {responseUpload.text}")

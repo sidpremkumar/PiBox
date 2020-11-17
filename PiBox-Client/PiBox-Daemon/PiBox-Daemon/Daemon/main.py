@@ -12,7 +12,8 @@ from sync import syncDirectory
 def main(): 
     """Main Entrypoint into the Daemon"""
     # First run a sync between the server and the client
-    syncDirectory(DIRECTORY)
+    syncDirectory(".")
+    print("Done syncing!")
     
     # Create our observer
     observer = Observer()
