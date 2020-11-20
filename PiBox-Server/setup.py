@@ -5,7 +5,7 @@ with open('requirements.txt', 'rb') as f:
     install_requires = f.read().decode('utf-8').split('\n')
 
 setup(
-    name='PiBox-Daemon',
+    name='PiBox-Server',
     version=1.0,
     # description="Sync pagure and github issues to jira, via fedmsg",
     # author='Ralph Bean',
@@ -22,13 +22,13 @@ setup(
     # ],
     install_requires=install_requires,
     packages=[
-        'PiBoxDaemon',
+        'PiBoxServer',
     ],
     include_package_data=True,
     zip_safe=False,
     entry_points={
         'console_scripts': [
-            "pibox-daemon=PiBoxDaemon.main:main",
+            "pibox-server=PiBoxServer.main:main",
         ],
     },
 )

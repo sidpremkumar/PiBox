@@ -8,7 +8,7 @@ import shutil
 app = Flask(__name__)
 
 # Directory where files will be stored 
-DIRECTORY="/Users/sidpremkumar/PiBox-Data"
+DIRECTORY="/home/ubuntu/PiBox-Data"
 
 @app.route('/getSyncManifest', methods=["get"])
 def getSyncManifest():
@@ -120,23 +120,18 @@ def uploadFile():
         # First grab our file and path
         toUpload = request.files['file']
         path = request.values['path'].strip("/")
-        relativePath = os.path.join(DIRECTORY, path)
-        finalPath = os.path.join(relativePath, toUpload.filename)
+        absolutePath = os.path.join(DIRECTORY, path)
 
-        if (os.path.isfile(finalPath)):
+        if (os.path.isfile(absolutePath)):
             # The file exists already, delete it so we can reupload
-            os.remove(finalPath)
+            os.remove(absolutePath)
 
         # Check the directory exists 
-        if (not os.path.isdir(relativePath)):
-            # Create the folders
-            relativePathFolder = DIRECTORY
-            for folder in path.split("/"):
-                relativePathFolder = os.path.join(relativePathFolder, folder)
-                os.mkdir(relativePathFolder)
+        if (not os.path.exists(absolutePath)):
+            os.makedirs(absolutePath)
         
         # Finally save the file
-        toUpload.save(finalPath)
+        toUpload.save(absolutePath)
 
         # Return 200! 
         return Response(status=200)
