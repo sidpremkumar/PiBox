@@ -1,4 +1,10 @@
-def retriveFileLastModified():
+import os
+import json
+
+from PiBoxServer.config import DIRECTORY
+
+
+def retriveFileLastModified(path):
     """
     Get the timestamp of when a file was last modified
     Returns:
@@ -7,21 +13,20 @@ def retriveFileLastModified():
         * 500: If there is a server error
     """
     try:
-        # First grab our path
-        path = request.values['path']
-        relativePath = os.path.join(DIRECTORY, path)
+        # Make our path absolute
+        absolutePath = os.path.join(DIRECTORY, path)
 
         # Check if the file exists
-        if (not os.path.isfile(relativePath)):
+        if (not os.path.isfile(absolutePath)):
             # The file does not exists
             data = {'error': 'File does not exist!'}
-            return Response(response=json.dumps(data), status=400)
+            return (400, json.dumps(data))
 
         # Return the last modified timestamp 
-        data = {'timestamp': os.path.getmtime(relativePath)}
-        return Response(response=json.dumps(data), status=200)
+        data = {'timestamp': os.path.getmtime(absolutePath)}
+        return (200, json.dumps(data))
         
     except Exception as e:
         # Something went wrong, return 500 along with the error
         data = {'error': str(e)}
-        return Response(response=json.dumps(data), status=500)
+        return (500, json.dumps(data))

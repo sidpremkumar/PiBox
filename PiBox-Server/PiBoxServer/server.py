@@ -22,8 +22,11 @@ def startServer():
 
 @app.route('/getSyncManifest', methods=["get"])
 def getSyncManifest():
+    # First grab our path
+    path = request.values['path'].strip("/")
+
     # Add the event to the queue
-    event = requestEvent(params=(request.values['path'].strip("/")), requestFunction=requestHandlers.getSyncManifest)
+    event = requestEvent(params=(path), requestFunction=requestHandlers.getSyncManifest)
     eventQueue.put(event)
 
     # Wait till the event is done
@@ -35,28 +38,118 @@ def getSyncManifest():
 
 @app.route('/moveFile', methods=["post"])
 def moveFile():
-    return Response(status=201)
+    # Grab our origin and destination
+    origin = request.values['origin'].strip("/")
+    destination = request.values['destination'].strip("/")
+
+    # Add the event to the queue
+    event = requestEvent(params=(origin, destination), requestFunction=requestHandlers.moveFile)
+    eventQueue.put(event)
+
+    # Wait till the event is done
+    while(not event.isDone):
+        time.sleep(1)
+
+    # Return the event and its status code
+    return Response(status=event.status_code, response=event.response)
             
 @app.route('/createFolder', methods=["post"])
 def createFolder():
-    pass
+    # First grab our path
+    path = request.values['path'].strip("/")
+
+    # Add the event to the queue
+    event = requestEvent(params=(path), requestFunction=requestHandlers.createFolder)
+    eventQueue.put(event)
+
+    # Wait till the event is done
+    while(not event.isDone):
+        time.sleep(0.1)
+
+    # Return the event and its status code
+    return Response(status=event.status_code, response=event.response)
 
 @app.route('/uploadFile', methods=["post"])
 def uploadFile():
-    pass
+    # First grab our file and path
+    toUpload = request.files['file']
+    path = request.values['path'].strip("/")
+
+    # Add the event to the queue
+    event = requestEvent(params=path, requestFunction=requestHandlers.uploadFile, fileToUpload=toUpload, uploadsFile=True)
+    eventQueue.put(event)
+
+    # Wait till the event is done
+    while(not event.isDone):
+        time.sleep(1)
+
+    # Return the event and its status code
+    return Response(status=event.status_code, response=event.response)
 
 @app.route('/deleteFile', methods=["post"])
 def deleteFile():
-    pass
+    # First grab our path
+    path = request.values['path']
+
+    # Add the event to the queue
+    event = requestEvent(params=(path), requestFunction=requestHandlers.deleteFile)
+    eventQueue.put(event)
+
+    # Wait till the event is done
+    while(not event.isDone):
+        time.sleep(1)
+
+    # Return the event and its status code
+    return Response(status=event.status_code, response=event.response)
 
 @app.route('/deleteFolder', methods=["post"])
 def deleteFolder():
-    pass
+    # First grab our path
+    path = request.values['path']
+
+    # Add the event to the queue
+    event = requestEvent(params=(path), requestFunction=requestHandlers.deleteFolder)
+    eventQueue.put(event)
+
+    # Wait till the event is done
+    while(not event.isDone):
+        time.sleep(1)
+
+    # Return the event and its status code
+    return Response(status=event.status_code, response=event.response)
 
 @app.route('/retriveFile', methods=["get"])
 def retriveFile():
-    pass
+    # First grab our path
+    path = request.values['path']
+
+    # Add the event to the queue
+    event = requestEvent(params=(path), requestFunction=requestHandlers.retriveFile, returnsFile=True)
+    eventQueue.put(event)
+
+    # Wait till the event is done
+    while(not event.isDone):
+        time.sleep(1)
+
+    # Return the event and its status code
+    if (event.status_code == 200):
+        return send_file(event.absolutePath, attachment_filename=event.attachment_filename)
+    
+    # Unless an error came up
+    return Response(status=event.status_code, response=event.response)
 
 @app.route('/retriveFileLastModified', methods=["get"])
 def retriveFileLastModified():
-    pass
+    # First grab our path
+    path = request.values['path']
+
+    # Add the event to the queue
+    event = requestEvent(params=(path), requestFunction=requestHandlers.retriveFileLastModified)
+    eventQueue.put(event)
+
+    # Wait till the event is done
+    while(not event.isDone):
+        time.sleep(1)
+
+    # Return the event and its status code
+    return Response(status=event.status_code, response=event.response)

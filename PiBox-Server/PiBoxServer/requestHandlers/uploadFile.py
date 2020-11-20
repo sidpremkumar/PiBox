@@ -1,4 +1,10 @@
-def uploadFile():
+import os
+import json
+
+from PiBoxServer.config import DIRECTORY
+
+
+def uploadFile(path, toUpload):
     """
     Upload endpoint to upload new files
     Returns: 
@@ -6,9 +12,7 @@ def uploadFile():
         * 500: If there is a server error
     """
     try:
-        # First grab our file and path
-        toUpload = request.files['file']
-        path = request.values['path'].strip("/")
+        # Make our path absolute
         absolutePath = os.path.join(DIRECTORY, path)
 
         if (os.path.isfile(absolutePath)):
@@ -23,8 +27,8 @@ def uploadFile():
         toUpload.save(absolutePath)
 
         # Return 200! 
-        return Response(status=200)
+        return (200, json.dumps({}))
     except Exception as e: 
         # Something went wrong, return 500 along with the error
         data = {'error': str(e)}
-        return Response(response=json.dumps(data), status=500)
+        return (500, json.dumps(data))

@@ -1,4 +1,10 @@
-def createFolder():
+import os
+import json
+
+from PiBoxServer.config import DIRECTORY
+
+
+def createFolder(path):
     """
     Creates a folder 
     Returns:
@@ -6,14 +12,13 @@ def createFolder():
         * 500: If there is a server error
     """
     try:
-        # First grab our path
-        path = request.values['path'].strip("/")
+        # Make our path relative
         relativePath = os.path.join(DIRECTORY, path)
 
         # Check if it exists already
         if (os.path.isdir(relativePath)):
             # The folder already exists
-            return Response(status=200)
+            return (200, json.dumps({}))
         
          # Create the folders
         relativePathFolder = DIRECTORY
@@ -22,10 +27,10 @@ def createFolder():
             os.mkdir(relativePathFolder)
         
         # Return 200! 
-        return Response(status=200)
+        return (200, json.dumps({}))
     
 
     except Exception as e: 
             # Something went wrong, return 500 along with the error
             data = {'error': str(e)}
-            return Response(response=json.dumps(data), status=500)
+            return (200, json.dumps(data))
