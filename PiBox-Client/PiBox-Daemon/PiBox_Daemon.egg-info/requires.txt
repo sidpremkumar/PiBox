@@ -1,3 +1,0 @@
-watchdog
-requests
-requests-kerberos
