@@ -1,0 +1,1 @@
+from PiBoxServer.requestHandlers.getSyncManifest import getSyncManifest

@@ -1,261 +1,62 @@
+import redis
 from flask import Flask, request, Response, send_file
 
 import os
 import json
 import shutil
+import queue
+import time
+
+from PiBoxServer import requestHandlers, utils
+from PiBoxServer.requestEvent import requestEvent
+from PiBoxServer.config import DIRECTORY
 
 # Flask App Info
 app = Flask(__name__)
 
-# Directory where files will be stored 
-DIRECTORY="/home/ubuntu/PiBox-Data"
+# Create our event queue
+eventQueue = queue.Queue()
+
+def startServer():
+    app.run(host='0.0.0.0', port=5000)
 
 @app.route('/getSyncManifest', methods=["get"])
 def getSyncManifest():
-    """
-    Returns a JSON of all files in the server along with last modified timestamps
-    Returns:
-        * 200: If succsesful
-        * 500: If there is a server error
-    """
-    try:
-        # First grab the path we're looking at
-        path = request.values['path'].strip("/")
-        files = getFiles(os.path.join(DIRECTORY, path))
-        data = {'files': files}
-        return Response(status=200, response=json.dumps(data))
-    except Exception as e: 
-        # Something went wrong, return 500 along with the error
-        data = {'error': str(e)}
-        return Response(response=json.dumps(data), status=500)
+    # Add the event to the queue
+    event = requestEvent(params=(request.values['path'].strip("/")), requestFunction=requestHandlers.getSyncManifest)
+    eventQueue.put(event)
 
-def getFiles(directory):
-    """
-    Helper function to get all files in a directory
-    param string directory: Directory we're looking at
-    """
-    listOfFile = os.listdir(directory)
-    completeFileList = list()
-    for singleFile in listOfFile:
-        completePath = os.path.join(directory, singleFile)
-        if os.path.isdir(completePath):
-            completeFileList = completeFileList + getFiles(completePath)
-        else:
-            # Return only the realtive path to the file
-            completePath = os.path.relpath(completePath, DIRECTORY) # i.e. ubuntu/test/test.txt -> test/test.txt
-            completeFileList.append(completePath)
-    return completeFileList
+    # Wait till the event is done
+    while(not event.isDone):
+        time.sleep(0.1)
 
+    # Return the event and its status code
+    return Response(status=event.status_code, response=event.response)
 
 @app.route('/moveFile', methods=["post"])
 def moveFile():
-    """
-    Moves a file or folder
-    Returns:
-        * 200: If upload was succssful 
-        * 500: If there is a server error
-    """
-    try:
-        # Grab our origin and destination
-        origin = request.values['origin'].strip("/")
-        destination = request.values['destination'].strip("/")
-
-        # Make them relativePaths
-        relativeOrigin = os.path.join(DIRECTORY, origin)
-        relativeDestination = os.path.join(DIRECTORY, destination)
-
-
-        # Move the files
-        shutil.move(relativeOrigin,relativeDestination)
-
-        # Return 200!
-        return Response(status=200)
-    except Exception as e: 
-                # Something went wrong, return 500 along with the error
-                data = {'error': str(e)}
-                return Response(response=json.dumps(data), status=500)
+    return Response(status=201)
             
 @app.route('/createFolder', methods=["post"])
 def createFolder():
-    """
-    Creates a folder 
-    Returns:
-        * 200: If upload was succssful 
-        * 500: If there is a server error
-    """
-    try:
-        # First grab our path
-        path = request.values['path'].strip("/")
-        relativePath = os.path.join(DIRECTORY, path)
-
-        # Check if it exists already
-        if (os.path.isdir(relativePath)):
-            # The folder already exists
-            return Response(status=200)
-        
-         # Create the folders
-        relativePathFolder = DIRECTORY
-        for folder in path.split("/"):
-            relativePathFolder = os.path.join(relativePathFolder, folder)
-            os.mkdir(relativePathFolder)
-        
-        # Return 200! 
-        return Response(status=200)
-    
-
-    except Exception as e: 
-            # Something went wrong, return 500 along with the error
-            data = {'error': str(e)}
-            return Response(response=json.dumps(data), status=500)
+    pass
 
 @app.route('/uploadFile', methods=["post"])
 def uploadFile():
-    """
-    Upload endpoint to upload new files
-    Returns: 
-        * 200: If upload was succssful 
-        * 500: If there is a server error
-    """
-    try:
-        # First grab our file and path
-        toUpload = request.files['file']
-        path = request.values['path'].strip("/")
-        absolutePath = os.path.join(DIRECTORY, path)
-
-        if (os.path.isfile(absolutePath)):
-            # The file exists already, delete it so we can reupload
-            os.remove(absolutePath)
-
-        # Check the directory exists 
-        if (not os.path.exists(absolutePath)):
-            os.makedirs(absolutePath)
-        
-        # Finally save the file
-        toUpload.save(absolutePath)
-
-        # Return 200! 
-        return Response(status=200)
-    except Exception as e: 
-        # Something went wrong, return 500 along with the error
-        data = {'error': str(e)}
-        return Response(response=json.dumps(data), status=500)
+    pass
 
 @app.route('/deleteFile', methods=["post"])
 def deleteFile():
-    """
-    Delete endpoint to delete a single file
-    Returns: 
-        * 200: If delete was succssful 
-        * 400: If the file does not exist
-        * 500: If there is a server error
-    """
-    try: 
-        # First grab our path
-        path = request.values['path']
-        relativePath = os.path.join(DIRECTORY, path)
-
-        # Now ensure it exists
-        if (not os.path.isfile(relativePath)):
-            # The file does not exists
-            data = {'error': 'File does not exist!'}
-            return Response(response=json.dumps(data), status=400)
-        
-        # Then delete the file
-        os.remove(relativePath)
-
-        # Return 200!
-        return Response(status=200)
-    except Exception as e:
-        # Something went wrong, return 500 along with the error
-        data = {'error': str(e)}
-        return Response(response=json.dumps(data), status=500)
+    pass
 
 @app.route('/deleteFolder', methods=["post"])
 def deleteFolder():
-    """
-    Delete endpoint to delete a single folder
-    Returns: 
-        * 200: If delete was succssful 
-        * 400: If the folder does not exist
-        * 500: If there is a server error
-    """
-    try: 
-        # First grab our path
-        path = request.values['path']
-        relativePath = os.path.join(DIRECTORY, path)
-
-        # Now ensure it exists
-        if (not os.path.isdir(relativePath)):
-            # The folder does not exists
-            data = {'error': 'Folder does not exist!'}
-            return Response(response=json.dumps(data), status=400)
-        
-        # Then delete the file
-        shutil.rmtree(relativePath)
-
-        # Return 200!
-        return Response(status=200)
-    except Exception as e:
-        # Something went wrong, return 500 along with the error
-        data = {'error': str(e)}
-        return Response(response=json.dumps(data), status=500)
+    pass
 
 @app.route('/retriveFile', methods=["get"])
 def retriveFile():
-    """
-    Get endpoint to retrive a file
-    Returns: 
-        * 200: If we're able to return the file
-        * 400: If the file does not exist
-        * 500: If there is a server error
-    """
-    try:
-        # First grab our path
-        path = request.values['path']
-        relativePath = os.path.join(DIRECTORY, path)
-
-        # Check if the file exists
-        if (not os.path.isfile(relativePath)):
-            # The file does not exists
-            data = {'error': 'File does not exist!'}
-            return Response(response=json.dumps(data), status=400)
-        
-        # Return the file
-        return send_file(relativePath, attachment_filename=os.path.basename(relativePath))
-
-    except Exception as e:
-        # Something went wrong, return 500 along with the error
-        data = {'error': str(e)}
-        return Response(response=json.dumps(data), status=500)
+    pass
 
 @app.route('/retriveFileLastModified', methods=["get"])
 def retriveFileLastModified():
-    """
-    Get the timestamp of when a file was last modified
-    Returns:
-        * 200: If we're able to return the last modified time
-        * 400: If the files does not exists
-        * 500: If there is a server error
-    """
-    try:
-        # First grab our path
-        path = request.values['path']
-        relativePath = os.path.join(DIRECTORY, path)
-
-        # Check if the file exists
-        if (not os.path.isfile(relativePath)):
-            # The file does not exists
-            data = {'error': 'File does not exist!'}
-            return Response(response=json.dumps(data), status=400)
-
-        # Return the last modified timestamp 
-        data = {'timestamp': os.path.getmtime(relativePath)}
-        return Response(response=json.dumps(data), status=200)
-        
-    except Exception as e:
-        # Something went wrong, return 500 along with the error
-        data = {'error': str(e)}
-        return Response(response=json.dumps(data), status=500)
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    pass
